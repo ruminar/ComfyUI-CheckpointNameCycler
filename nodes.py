@@ -1,14 +1,15 @@
 import hashlib
-import random
 import re
+import secrets
 import threading
+import time
 
 from aiohttp import web
 
 import folder_paths
 from server import PromptServer
 
-
+_RNG = secrets.SystemRandom()
 _STATES = {}
 _STATE_LOCK = threading.Lock()
 
@@ -63,15 +64,15 @@ def _make_shuffle_order(count, first_index=None, previous_index=None):
     if first_index is not None:
         first_index = _clamp_index(first_index, count)
         rest = [index for index in indices if index != first_index]
-        random.shuffle(rest)
+        _RNG.shuffle(rest)
         return [first_index] + rest
 
-    random.shuffle(indices)
+    _RNG.shuffle(indices)
 
     # Avoid repeating the last item of the previous cycle as the first item
     # of the next cycle when possible.
     if count > 1 and previous_index is not None and indices and indices[0] == previous_index:
-        swap_index = random.randrange(1, count)
+        swap_index = _RNG.randrange(1, count)
         indices[0], indices[swap_index] = indices[swap_index], indices[0]
 
     return indices
@@ -181,7 +182,7 @@ def _advance_state(state, checkpoints, mode):
         return
 
     if mode == "randomize":
-        state["current_index"] = random.randrange(count)
+        state["current_index"] = _RNG.randrange(count)
         return
 
     if mode == "shuffle_once":
@@ -239,7 +240,7 @@ class CheckpointNameCycler:
     @classmethod
     def IS_CHANGED(cls, **kwargs):
         # This node is stateful and must run every queued execution.
-        return float("NaN")
+        return time.time_ns()
 
     def cycle(self, start_checkpoint, mode, change_every, unique_id=None):
         checkpoints = _get_checkpoints()
