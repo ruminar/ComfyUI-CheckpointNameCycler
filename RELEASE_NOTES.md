@@ -1,6 +1,10 @@
-# v0.1.0
+# v0.2.0
 
-初回リリースじゃ！
+- 実行時に選択されたCheckpoint名をノードタイトルへ表示
+  - `Cp: ckpt_name_safe`
+  - `change_every` が 2 以上なら `Cp: ckpt_name_safe (2/3)` のように進捗も表示
+- `secrets.SystemRandom()` ベースの乱数処理に変更
+- `IS_CHANGED` は `time.time_ns()` ベースに変更
 
 ## 特徴
 
@@ -9,6 +13,7 @@
 - `change_every` で、同じCheckpointを何枚ずつ使うか指定可能
 - `start_checkpoint` で開始位置を指定可能
 - `ckpt_name_safe` により、保存ファイル名向けの安全なCheckpoint名を出力
+- 実行時に選択されたCheckpoint名をノードタイトルへ表示
 - 100件キュー投入のような大量比較・棚卸し用途を想定
 
 ## 使い方

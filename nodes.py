@@ -69,8 +69,6 @@ def _make_shuffle_order(count, first_index=None, previous_index=None):
 
     _RNG.shuffle(indices)
 
-    # Avoid repeating the last item of the previous cycle as the first item
-    # of the next cycle when possible.
     if count > 1 and previous_index is not None and indices and indices[0] == previous_index:
         swap_index = _RNG.randrange(1, count)
         indices[0], indices[swap_index] = indices[swap_index], indices[0]
@@ -87,7 +85,6 @@ def _safe_checkpoint_name(name):
             value = value[:-len(ext)]
             break
 
-    # Windows filename unsafe characters plus control characters.
     value = re.sub(r'[<>:"|?*\x00-\x1f]', "_", value)
     value = value.strip().strip(".")
     return value or "checkpoint"
@@ -111,7 +108,6 @@ def _new_state(checkpoints, start_checkpoint, mode, change_every):
     }
 
     if count > 0 and mode == "shuffle_once":
-        # First run starts with the selected start_checkpoint.
         state["shuffle_order"] = _make_shuffle_order(count, first_index=start_index)
         state["shuffle_position"] = 0
         state["current_index"] = state["shuffle_order"][0]
@@ -151,8 +147,7 @@ def _select_index(state, checkpoints, mode):
             position = 0
             state["shuffle_position"] = 0
 
-        index = order[position]
-        return _clamp_index(index, count)
+        return _clamp_index(order[position], count)
 
     return _clamp_index(state.get("current_index", 0), count)
 
@@ -191,14 +186,12 @@ def _advance_state(state, checkpoints, mode):
 
         if position >= count:
             state["cycle_count"] = int(state.get("cycle_count", 0)) + 1
-            # After the first cycle, every loop gets a fresh random order.
             state["shuffle_order"] = _make_shuffle_order(count, previous_index=current_index)
             state["shuffle_position"] = 0
         else:
             state["shuffle_position"] = position
 
         state["current_index"] = _select_index(state, checkpoints, mode)
-        return
 
 
 routes = PromptServer.instance.routes
@@ -239,7 +232,6 @@ class CheckpointNameCycler:
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):
-        # This node is stateful and must run every queued execution.
         return time.time_ns()
 
     def cycle(self, start_checkpoint, mode, change_every, unique_id=None):
@@ -254,19 +246,35 @@ class CheckpointNameCycler:
                 state = _new_state(checkpoints, start_checkpoint, mode, change_every)
                 _STATES[node_key] = state
 
+            change_every = max(1, int(change_every))
+
             if count <= 0:
-                return ("", "", "checkpoint", 0, 0, int(state.get("cycle_count", 0)))
+                return {
+                    "ui": {
+                        "ckpt_name": [""],
+                        "repeat_index": [0],
+                        "change_every": [change_every],
+                    },
+                    "result": ("", "", "checkpoint", 0, 0, int(state.get("cycle_count", 0))),
+                }
 
             index = _select_index(state, checkpoints, mode)
             ckpt_name = checkpoints[index]
             ckpt_name_str = str(ckpt_name)
             ckpt_name_safe = _safe_checkpoint_name(ckpt_name_str)
             cycle = int(state.get("cycle_count", 0))
+            repeat_index = int(state.get("repeat_count", 0)) + 1
 
-            # Advance after deciding this execution's output.
             _advance_state(state, checkpoints, mode)
 
-            return (ckpt_name, ckpt_name_str, ckpt_name_safe, int(index), int(count), cycle)
+            return {
+                "ui": {
+                    "ckpt_name": [ckpt_name_safe],
+                    "repeat_index": [repeat_index],
+                    "change_every": [change_every],
+                },
+                "result": (ckpt_name, ckpt_name_str, ckpt_name_safe, int(index), int(count), cycle),
+            }
 
 
 NODE_CLASS_MAPPINGS = {
