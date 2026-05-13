@@ -77,4 +77,4 @@ GPL-3.0（ComfyUI本体の掟に従っておるぞ！）
 
 ## 宣伝画像
 
-<img width="1122" height="1402" alt="ComfyUI-CheckpointNameCycler説明画像" src="https://github.com/user-attachments/assets/b386e413-0510-44cd-9a3f-d73401384063" />
+<img width="1122" height="1402" alt="ComfyUI-CheckpointNameCycler説明画像" src="https://github.com/user-attachments/assets/3f64e207-36a3-4fec-af7d-a3cdc8427533" />
